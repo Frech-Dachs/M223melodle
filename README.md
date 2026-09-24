@@ -1,24 +1,30 @@
-# README
+# Melodle
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Multiuser-Musik-Ratespiel für Freundesgruppen (Modul 223). Dokumentation: [docs/](docs/README.md).
 
-Things you may want to cover:
+## Stand
 
-* Ruby version
+- Registrierung, Login/Logout, Dashboard (geschützt)
+- Noch offen: Gruppen, Songlisten, Runden, Tipps, Bestenliste
 
-* System dependencies
+## Technologie-Stack
 
-* Configuration
+Ruby 4.0.6, Rails 8.1.3, SQLite 3, bcrypt (`has_secure_password`), Minitest
 
-* Database creation
+## Installation & Start
 
-* Database initialization
+```bash
+bundle install
+bin/rails db:setup
+bin/rails server   # http://localhost:3000
+```
 
-* How to run the test suite
+## Tests
 
-* Services (job queues, cache servers, search engines, etc.)
+```bash
+bin/rails test
+```
 
-* Deployment instructions
+## Demo-Konten
 
-* ...
+Noch keine (folgen mit den Seed-Daten).

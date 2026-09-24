@@ -1,0 +1,4 @@
+alice:
+  email: alice@example.com
+  display_name: Alice
+  password_digest: <%= BCrypt::Password.create("correct-horse-battery", cost: 4) %>

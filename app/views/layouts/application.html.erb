@@ -24,6 +24,15 @@
   </head>
 
   <body>
+    <header>
+      <strong>Melodle</strong>
+      <% if logged_in? %>
+        <%= button_to "Abmelden", session_path, method: :delete %>
+      <% end %>
+    </header>
+    <% flash.each do |type, message| %>
+      <p class="flash <%= type %>"><%= message %></p>
+    <% end %>
     <%= yield %>
   </body>
 </html>
