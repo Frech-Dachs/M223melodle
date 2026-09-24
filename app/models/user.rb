@@ -1,6 +1,10 @@
 class User < ApplicationRecord
   has_secure_password
 
+  has_many :memberships, dependent: :destroy
+  has_many :groups, through: :memberships
+  has_many :participations, dependent: :destroy
+
   normalizes :email, with: ->(email) { email.strip.downcase }
   normalizes :display_name, with: ->(name) { name.strip }
 
