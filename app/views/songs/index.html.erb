@@ -16,6 +16,9 @@
           <td><%= song.artist %></td>
           <td><%= song.added_by.display_name %></td>
           <td>
+            <% if policy(Round.new(group: @group, song: song)).create? %>
+              <%= button_to "Runde starten", group_rounds_path(@group, song_id: song.id) %>
+            <% end %>
             <% if policy(song).destroy? %>
               <%= button_to "Entfernen", group_song_path(@group, song), method: :delete,
                     form: { data: { turbo_confirm: "«#{song.title}» wirklich entfernen?" } } %>
@@ -27,6 +30,10 @@
   </table>
 <% else %>
   <p><%= @query.present? ? "Keine Songs gefunden." : "Noch keine Songs in dieser Gruppe." %></p>
+<% end %>
+
+<% if @songs.any? && policy(Round.new(group: @group)).create? %>
+  <%= button_to "Runde mit zufälligem Song starten", group_rounds_path(@group) %>
 <% end %>
 
 <% if policy(@song).create? %>

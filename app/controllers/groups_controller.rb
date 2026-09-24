@@ -18,6 +18,8 @@ class GroupsController < ApplicationController
   def show
     @group = policy_scope(Group).find(params[:id]) # groups of other users do not exist for you: 404
     authorize @group
+    @group.rounds.active.each(&:expire_if_needed!)
+    @active_round = @group.rounds.active.first
     @memberships = @group.memberships.includes(:user).order(:created_at)
   end
 

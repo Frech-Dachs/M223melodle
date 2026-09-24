@@ -7,6 +7,11 @@ Rails.application.routes.draw do
   resources :groups, only: %i[new create show] do
     resources :memberships, only: :destroy
     resources :songs, only: %i[index create destroy]
+    resources :rounds, only: :create
+    resource :leaderboard, only: :show
+  end
+  resources :rounds, only: :show do
+    resources :guesses, only: :create
   end
   resource :join, only: %i[new create]
   resource :profile, only: %i[show edit update]

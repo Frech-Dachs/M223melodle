@@ -1,6 +1,13 @@
+<%= turbo_stream_from @group %>
 <h1><%= @group.name %></h1>
 
 <p>Einladungscode: <strong><%= @group.invite_code %></strong> (<%= @memberships.size %> / <%= @group.member_limit %> Mitglieder)</p>
+
+<% if @active_round %>
+  <p <%= tag.attributes(data: { controller: "auto-visit", auto_visit_url_value: round_path(@active_round) }) if @active_round.started_at > 5.seconds.ago %>>
+    <strong>Es läuft eine Runde!</strong> <%= link_to "Jetzt mitspielen", round_path(@active_round) %>
+  </p>
+<% end %>
 
 <h2>Mitglieder</h2>
 <table>
@@ -21,6 +28,6 @@
   </tbody>
 </table>
 
-<p><%= link_to "Songliste (#{@group.songs.count})", group_songs_path(@group) %></p>
+<p><%= link_to "Bestenliste", group_leaderboard_path(@group) %> · <%= link_to "Songliste (#{@group.songs.count})", group_songs_path(@group) %></p>
 
 <p><%= link_to "Zurück zum Dashboard", dashboard_path %></p>

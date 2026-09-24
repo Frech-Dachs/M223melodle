@@ -1,0 +1,22 @@
+<%= turbo_stream_from @group %>
+<h1>Bestenliste – <%= @group.name %></h1>
+
+<% if @rows.any? %>
+  <table>
+    <thead><tr><th>Platz</th><th>Spieler</th><th>Runden gespielt</th><th>Punkte</th></tr></thead>
+    <tbody>
+      <% @rows.each do |row| %>
+        <tr <%= tag.attributes(class: "me", style: "font-weight: bold") if row[:score].user_id == current_user.id %>>
+          <td><%= row[:rank] %></td>
+          <td><%= row[:score].user.display_name %></td>
+          <td><%= row[:played] %></td>
+          <td><%= row[:score].total_points %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>Noch keine Spieler.</p>
+<% end %>
+
+<p><%= link_to "Zurück zur Gruppe", @group %></p>

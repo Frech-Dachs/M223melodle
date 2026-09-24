@@ -265,6 +265,8 @@ Schritte:
 
 ## Phase 8 – Kernfunktion: Rate-Runde (Anforderungen 4–6)
 
+> **Stand:** umgesetzt (ohne Echtzeit, die folgt in Phase 9). Regeln als Konstanten in `Round`: 7 Stufen (0.1 / 0.5 / 1 / 2 / 4 / 8 / 16 s), 10 s pro Stufe, Punkte 100 / 80 / 60 / 40 / 25 / 10 / 5. `Round.start!` (Doppelstart → `AlreadyActive`, abgelaufene Runden geben den Platz frei), `Round#guess!` (Ergebnis `:correct`/`:wrong`/`:already`/`:closed`, alles unter `with_lock` in einer Transaktion, Punkte via `Score#add_points!`), `Round#finish!` (trägt 0 Punkte für alle Nicht-Löser ein). Die Runde endet, sobald alle Mitglieder gelöst haben oder die letzte Stufe abläuft. Abgelaufene Runden werden **lazy** beim nächsten Zugriff beendet (kein Job). Falsche Tipps sind unbegrenzt möglich und werden nicht gespeichert. UI: `RoundsController` (`create`, `show`), `GuessesController`, Stimulus-Controller `clip_player_controller.js` (spielt nur den erlaubten Ausschnitt und lädt zur nächsten Stufe neu). Start-Buttons in der Songliste (pro Song und «zufälliger Song»), Link «Jetzt mitspielen» auf der Gruppenseite. Der Songtitel steht erst nach Rundenende im HTML. **Bekannte Einschränkung:** die Ausschnittslänge wird im Browser begrenzt, die `audio_url` steht im HTML; für die Demo opake Dateinamen verwenden. Tests: `test/models/round_test.rb`, `test/integration/rounds_test.rb`.
+
 Das ist der wichtigste Teil. **Zuerst die Regeln als Modellcode + Tests, dann UI.**
 
 ### 8.1 Spielregeln festlegen
@@ -333,6 +335,8 @@ end
 ---
 
 ## Phase 9 – Echtzeit und Bestenliste (Anforderungen 4, 7 + Qualitätsattribute 1, 4, 5)
+
+> **Stand:** umgesetzt, mit einer Abweichung von der ursprünglichen Skizze: statt einzelner Turbo-Stream-Fragmente werden **Turbo Page Refreshes mit Morphing** verwendet (`turbo_refreshes_with method: :morph` im Layout, `broadcast_refresh_later_to`). Das ist einfacher, weil jede Seite pro Benutzer unterschiedlich aussieht (Tippformular vs. «warte auf die anderen»). Gesendet wird per Model-Callback: `Round` (Erstellen und Statuswechsel → Gruppe bzw. Runde), `Participation` (neuer Eintrag → Runde). Abonniert wird mit `turbo_stream_from` auf Gruppen-, Runden- und Bestenlistenseite. Ein frisch gestartete Runde (< 5 s) leitet Mitglieder auf der Gruppenseite automatisch weiter (`auto_visit_controller.js`). Bestenliste: `LeaderboardsController` (Rang mit Gleichstand, Runden gespielt, eigene Zeile fett). `clip_player_controller.js` plant seinen Timer bei Morphing neu. Development nutzt den `async`-Cable-Adapter (ein Prozess), Production Solid Cable. Die Zielwerte (< 2 s Start, < 1 s Bestenliste, 20 Mitglieder) sind im Design berücksichtigt, wurden aber noch nicht mit vielen Sessions gemessen: manuell mit 2 Browsern prüfen. Tests: `test/integration/leaderboard_test.rb`.
 
 1. **Turbo Streams über Action Cable** (Rails 8: Solid Cable, keine Redis nötig): `config/cable.yml` prüfen.
 2. Runde:
