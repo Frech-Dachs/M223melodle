@@ -50,12 +50,12 @@ Die wichtigste domänenspezifische Anforderung der ersten Iteration ist der voll
 
 - **Rundenstart:** Pro Gruppe darf zu jedem Zeitpunkt nur eine Runde aktiv sein. Löst der Host durch einen Doppelklick oder einen Netzwerk-Retry zwei Startanfragen gleichzeitig aus, darf nur eine Runde tatsächlich angelegt werden – die Erstellung muss transaktional an die Bedingung "keine aktive Runde vorhanden" gebunden sein.
 - **Ergebniserfassung:** Pro Mitglied und Runde darf nur ein Teilnahme-Datensatz (richtig geraten: ja/nein, Punkte) existieren. Geben mehrere Mitglieder gleichzeitig ihr Ergebnis ab, dürfen sich die einzelnen Teilnahme-Datensätze nicht gegenseitig überschreiben; hier genügt ein Locking auf Ebene des einzelnen Datensatzes, kein globales Sperren der Runde.
-- **Punkteverbuchung:** Schliessen mehrere Mitglieder ihre Teilnahme an einer Runde zeitgleich ab, muss die Aktualisierung der Gesamtpunktzahl pro Mitglied atomar erfolgen, damit bei gleichzeitigen Schreibzugriffen kein Zwischenstand verloren geht (klassische Race Condition beim Erhöhen eines Zählerwerts).
+- **Punkteverbuchung:** Schliessen mehrere Mitglieder ihre Teilnahme an einer Runde zeitgleich ab, muss die Aktualisierung der Gesamtpunktzahl im Punktestand (pro Mitglied und Gruppe) atomar erfolgen, damit bei gleichzeitigen Schreibzugriffen kein Zwischenstand verloren geht (klassische Race Condition beim Erhöhen eines Zählerwerts).
 - **Gruppenbeitritt bei begrenzter Mitgliederzahl:** Hat eine Gruppe ein Mitgliederlimit und treten zwei Nutzer gleichzeitig über denselben Einladungscode dem letzten freien Platz bei, darf die Aufnahme transaktional nur für einen der beiden Nutzer bestätigt werden.
 
 ### ERM (Entity-Relationship-Model)
 
-Das Datenmodell umfasst die Entitäten Gruppe, Benutzer (mit fester Zuordnung zu genau einer Gruppe), Song, Runde und Teilnahme (verknüpft Benutzer und Runde mit dem Ergebnis richtig_geraten und den erzielten Punkten). Das vollständige ERM inklusive Attributen, Schlüsseln und Kardinalitäten ist als Grafik beigelegt:
+Das Datenmodell umfasst die Entitäten Benutzer, Gruppe, Gruppenmitgliedschaft (verknüpft Benutzer und Gruppe, da ein Benutzer mehreren Gruppen angehören kann), Song, Runde, Teilnahme (verknüpft Benutzer und Runde mit dem Ergebnis richtig_geraten und den erzielten Punkten) sowie Punktestand (verknüpft Benutzer und Gruppe mit der Gesamtpunktzahl, da die Bestenliste pro Gruppe geführt wird). Das vollständige ERM inklusive Attributen, Schlüsseln und Kardinalitäten ist als Grafik beigelegt:
 
 ![ERM Melodle](erm_melodle.png)
 

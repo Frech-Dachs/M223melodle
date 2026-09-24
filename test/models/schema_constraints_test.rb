@@ -17,6 +17,14 @@ class SchemaConstraintsTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordNotUnique) { Membership.new(user: @user, group: @group).save!(validate: false) }
   end
 
+  test "score is unique per user and group and increments atomically" do
+    score = Score.create!(user: @user, group: @group)
+    assert_raises(ActiveRecord::RecordNotUnique) { Score.new(user: @user, group: @group).save!(validate: false) }
+    Score.find(score.id).add_points!(50)
+    score.add_points!(30)
+    assert_equal 80, score.reload.total_points
+  end
+
   test "only one active round per group" do
     start = -> { @group.rounds.create!(song: @song, started_by: @user, started_at: Time.current) }
     start.call

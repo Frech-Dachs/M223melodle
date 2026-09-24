@@ -1,0 +1,15 @@
+<h1>Mein Profil</h1>
+
+<dl>
+  <dt>Anzeigename</dt><dd><%= @user.display_name %></dd>
+  <dt>E-Mail</dt><dd><%= @user.email %></dd>
+  <% if @user.unconfirmed_email.present? %>
+    <dt>Ausstehende Bestätigung</dt><dd><%= @user.unconfirmed_email %></dd>
+  <% end %>
+</dl>
+
+<p>
+  <%= link_to "Profil bearbeiten", edit_profile_path %> ·
+  <%= link_to "Passwort ändern", edit_password_path %> ·
+  <%= link_to "Zurück zum Dashboard", dashboard_path %>
+</p>

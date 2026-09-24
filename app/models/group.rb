@@ -1,6 +1,7 @@
 class Group < ApplicationRecord
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
+  has_many :scores, dependent: :destroy
   has_many :songs, dependent: :destroy
   has_many :rounds, dependent: :destroy
 

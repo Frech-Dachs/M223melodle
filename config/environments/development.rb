@@ -33,6 +33,8 @@ Rails.application.configure do
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
+  # Mails are not sent in development; the confirmation link shows up in log/development.log.
+  config.action_mailer.delivery_method = :test
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false

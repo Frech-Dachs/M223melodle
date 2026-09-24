@@ -12,6 +12,7 @@ end
 group = Group.find_or_create_by!(name: "Demo Group") { |g| g.member_limit = 20 }
 Membership.find_or_create_by!(user: host, group: group) { |m| m.role = :host }
 [ anna, ben ].each { |u| Membership.find_or_create_by!(user: u, group: group) { |m| m.role = :player } }
+[ host, anna, ben ].each { |u| Score.find_or_create_by!(user: u, group: group) }
 
 [
   [ "Bohemian Rhapsody", "Queen" ],

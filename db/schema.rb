@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_064559) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_083217) do
   create_table "groups", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "invite_code", null: false
@@ -62,6 +62,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_064559) do
     t.index ["started_by_id"], name: "index_rounds_on_started_by_id"
   end
 
+  create_table "scores", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "group_id", null: false
+    t.integer "total_points", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["group_id", "total_points"], name: "index_scores_on_group_id_and_total_points"
+    t.index ["group_id"], name: "index_scores_on_group_id"
+    t.index ["user_id", "group_id"], name: "index_scores_on_user_id_and_group_id", unique: true
+    t.index ["user_id"], name: "index_scores_on_user_id"
+  end
+
   create_table "songs", force: :cascade do |t|
     t.integer "added_by_id", null: false
     t.string "artist", null: false
@@ -80,6 +92,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_064559) do
     t.string "display_name", null: false
     t.string "email", null: false
     t.string "password_digest", null: false
+    t.string "unconfirmed_email"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
   end
@@ -91,6 +104,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_064559) do
   add_foreign_key "rounds", "groups"
   add_foreign_key "rounds", "songs"
   add_foreign_key "rounds", "users", column: "started_by_id"
+  add_foreign_key "scores", "groups"
+  add_foreign_key "scores", "users"
   add_foreign_key "songs", "groups"
   add_foreign_key "songs", "users", column: "added_by_id"
 end

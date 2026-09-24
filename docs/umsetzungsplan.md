@@ -2,7 +2,7 @@
 
 Schritt-für-Schritt-Anleitung, als gäbe es noch nichts im Projekt. Jede Phase endet mit einer **Checkliste** und einem **Commit**. Die Reihenfolge folgt dem Kursplan (Tag 3–5) und der Wegleitung.
 
-> Konvention: Code, Tabellen, Spalten, Klassen, Variablen sind **englisch**. Dokumentation und UI-Texte dürfen deutsch sein. Die ERM-Begriffe (Gruppe, Runde, Teilnahme) entsprechen den englischen Modellen `Group`, `Round`, `Participation`.
+> Konvention: Code, Tabellen, Spalten, Klassen, Variablen sind **englisch**. Dokumentation und UI-Texte dürfen deutsch sein. Die ERM-Begriffe entsprechen den englischen Modellen: Benutzer = `User`, Gruppe = `Group`, Gruppenmitgliedschaft = `Membership`, Song = `Song`, Runde = `Round`, Teilnahme = `Participation`, Punktestand = `Score`.
 
 ## Übersicht
 
@@ -37,7 +37,7 @@ Skala pro Kriterium: **0** = nicht erfüllt · **1** = teilweise erfüllt · **2
 | | Konventionen beachtet (Code, Dateinamen, Frameworks) | 2 | 0, 12 | Englischer Code, Rails-Konventionen, `bin/rubocop` grün |
 | | Applikation ist lauffähig und entspricht der Dokumentation | 2 | 12, 13 | Frische Kopie startet; ERM/Doku = Umsetzung; README stimmt |
 | | Abschlusspräsentation | 2 | 13 | 5–10 Min., Live-Demo mit Fehlerfällen, Reserve-Screenshots |
-| **1 Domänenmodell und Architektur (4)** | Domänenspezifische Fachbegriffe verwendet | 2 | 1, 2, 13 | Einheitliche Begriffe (Gruppe/Group, Runde/Round, Teilnahme/Participation) in Code, UI, Doku |
+| **1 Domänenmodell und Architektur (4)** | Domänenspezifische Fachbegriffe verwendet | 2 | 1, 2, 13 | Einheitliche Begriffe (Gruppe/Group, Runde/Round, Teilnahme/Participation, Punktestand/Score) in Code, UI, Doku |
 | | Datenbankmodell (Domänenmodell) | 2 | 1, 2 | ERM aktuell, Constraints/Indizes, Seeds |
 | **1 Multi-User-Applikation (18)** | Authentifizierung | 2 | 3 | Registrierung, Login, Logout, Passwort ≥ 12, geschützter Bereich |
 | | Benutzerrollen und Berechtigungen | 2 | 6 | Host/Spieler/Nicht-Mitglied, Pundit, Policy-Tests |
@@ -84,15 +84,13 @@ Skala pro Kriterium: **0** = nicht erfüllt · **1** = teilweise erfüllt · **2
 
 Der Projektantrag muss vom Kursleiter **genehmigt** sein, bevor entwickelt wird.
 
-1. **Projektantrag** (`docs/projektantrag_melodle_new.md`) → als `docs/projektantrag.md` führen; PDF-Export für die Abgabe.
-2. **ERM prüfen** (`docs/erm_melodle.png`). Offene Punkte klären und im ERM nachführen:
-   - **Mehrere Gruppen pro Benutzer?** Die Wireframes zeigen «Meine Gruppen», das ERM erlaubt genau eine Gruppe (`benutzer.gruppe_id`). Entscheidung treffen:
-     - *Einfach (ERM wie gezeichnet):* ein Benutzer gehört zu genau einer Gruppe → Wireframe «Meine Gruppen» auf «Meine Gruppe» anpassen.
-     - *Flexibel:* Zwischentabelle `memberships` (`user_id`, `group_id`, `role`, `total_points`) → `gesamtpunkte` gehört dorthin, nicht in `users`. **Empfohlen**, weil Punkte pro Gruppe gelten und die Rolle (Host/Spieler) pro Gruppe ist.
-   - **Song pro Runde:** Wireframe «Song 3 von 10» → entweder eine Runde = ein Song (dann «Runde» als Spielabend/Session nennen) oder `rounds` bekommt eine Kindtabelle. **Empfohlen:** Ein `Game` (Spielabend) mit mehreren `Round`s, oder einfacher: eine Runde = ein Song, Wireframe-Text anpassen.
-   - **Tipps:** Optional Tabelle `guesses` (`participation_id`, `text`, `correct`, `stage`), wenn falsche Tipps gespeichert werden sollen.
+1. **Projektantrag** liegt als `docs/projektantrag_melodle.md` vor (alte Datei `projektantrag_melodle_new.md` ersetzt); PDF-Export für die Abgabe.
+2. **ERM** (`docs/erm_melodle.png`) ist aktualisiert. Entscheidungen, die bereits gefallen sind:
+   - **Mehrere Gruppen pro Benutzer:** ja, über `Membership` (`user_id`, `group_id`, `role`; «beigetreten am» = `created_at`). Die Rolle (Host/Spieler) gilt pro Gruppe.
+   - **Bestenliste:** eigene Entität `Score` (Punktestand: `user_id`, `group_id`, `total_points`, unique `[user_id, group_id]`), nicht mehr in `Membership`.
+   - **Songs** gehören zu einer Gruppe (`group_id`, `added_by_id`); **eine Runde = ein Song** (Wireframe-Text «Song 3 von 10» entsprechend anpassen).
    - **Lock-Spalten:** `lock_version` auf `participations` und `rounds`.
-   - **Aktivitäten:** Entity `activities` (oder Gem PaperTrail/Audited) im ERM ergänzen.
+   - Noch offen: Entity `activities` (Phase 10) im ERM ergänzen; optional `guesses`, falls falsche Tipps gespeichert werden sollen.
 3. **Breadboards** in Textkonvention (siehe `guides/shape-up/breadboards.md`) in `docs/breadboards.md` schreiben – alle Flows der 1. Iteration:
    - Registrieren / Einloggen
    - Gruppe erstellen, per Code beitreten
@@ -119,30 +117,34 @@ Der Projektantrag muss vom Kursleiter **genehmigt** sein, bevor entwickelt wird.
 
 ## Phase 2 – Datenbank und Modelle (Aufgabe 1)
 
-Empfohlenes Modell (mit Memberships):
+Modell (entspricht dem ERM):
 
 | Model | Wichtige Spalten |
 |---|---|
-| `User` | `email_address` (unique), `password_digest`, `display_name` |
+| `User` | `email` (unique), `password_digest`, `display_name` |
 | `Group` | `name`, `invite_code` (unique), `member_limit` |
-| `Membership` | `user_id`, `group_id`, `role` (enum: player/host), `total_points` (default 0); **unique** `[user_id, group_id]` |
-| `Song` | `group_id`, `title`, `artist`, `audio_url`/Active-Storage-Datei, `added_by_id` (→ users) |
+| `Membership` | `user_id`, `group_id`, `role` (enum: player/host); **unique** `[user_id, group_id]` |
+| `Score` | `user_id`, `group_id`, `total_points` (default 0); **unique** `[user_id, group_id]`, Index `[group_id, total_points]` |
+| `Song` | `group_id`, `title`, `artist`, `audio_url`, `added_by_id` (→ users) |
 | `Round` | `group_id`, `song_id`, `started_by_id`, `started_at`, `status` (enum: active/finished), `lock_version` |
 | `Participation` | `user_id`, `round_id`, `correct` (bool), `points` (int), `stage_reached`, `lock_version`; **unique** `[user_id, round_id]` |
+
+> **Stand:** Phase 2 ist umgesetzt (Migrationen, Modelle inkl. `Score`, Seeds, `test/models/schema_constraints_test.rb`).
 
 Schritte:
 
 1. **Generatoren** (Authentifizierung kommt in Phase 3, `User` entsteht dort):
    ```bash
    bin/rails g model Group name:string invite_code:string:uniq member_limit:integer
-   bin/rails g model Membership user:references group:references role:integer total_points:integer
+   bin/rails g model Membership user:references group:references role:integer
+   bin/rails g model Score user:references group:references total_points:integer
    bin/rails g model Song group:references title:string artist:string audio_url:string added_by:references
    bin/rails g model Round group:references song:references started_by:references started_at:datetime status:integer lock_version:integer
    bin/rails g model Participation user:references round:references correct:boolean points:integer stage_reached:integer lock_version:integer
    ```
    `added_by` und `started_by` per Hand auf `foreign_key: { to_table: :users }` umstellen.
 2. **Migrationen anpassen**: `null: false`, `default: 0` (`total_points`, `points`, `lock_version`), Unique-Indizes:
-   - `memberships`: `[user_id, group_id]` unique
+   - `memberships` und `scores`: `[user_id, group_id]` unique
    - `participations`: `[user_id, round_id]` unique
    - **Nur eine aktive Runde pro Gruppe**: partieller Unique-Index
      ```ruby
@@ -151,14 +153,16 @@ Schritte:
 3. **Modelle**: Assoziationen (`has_many`, `belongs_to`), Enums (`enum :status, { active: 0, finished: 1 }`), Validierungen (`presence`, Länge, `member_limit >= 1`).
 4. **Einladungscode**: `has_secure_token :invite_code` oder `before_create` mit `SecureRandom.alphanumeric(8).upcase`.
 5. `bin/rails db:migrate` und `db/schema.rb` prüfen.
-6. **Seeds** (`db/seeds.rb`): Demo-Konten (z. B. `host@example.test`, `anna@example.test`, `ben@example.test`, Passwort mind. 12 Zeichen), eine Gruppe, 5–10 Songs. Test mit `bin/rails db:seed`.
+6. **Seeds** (`db/seeds.rb`): Demo-Konten (z. B. `host@example.test`, `anna@example.test`, `ben@example.test`, Passwort mind. 12 Zeichen), eine Gruppe mit Memberships und je einem `Score` pro Mitglied, 5–10 Songs. Test mit `bin/rails db:seed`.
 7. Commit.
 
-**Checkliste:** `bin/rails db:migrate` ohne Fehler · Console-Test: Gruppe, Mitglieder, Songs anlegen · Unique-Index verhindert Duplikate.
+**Checkliste:** `bin/rails db:migrate` ohne Fehler · Console-Test: Gruppe, Mitglieder, Scores, Songs anlegen · Unique-Index verhindert Duplikate.
 
 ---
 
 ## Phase 3 – Authentifizierung (Aufgabe 2)
+
+> **Stand:** umgesetzt (eigene Implementierung statt Generator: `UsersController`, `SessionsController` mit `authenticate_by` und `rate_limit`, Dashboard geschützt, Tests in `test/integration/authentication_test.rb`).
 
 1. `bin/rails generate authentication` (erzeugt `User`, `Session`, `SessionsController`, `PasswordsController`, `Authentication`-Concern) → `bin/rails db:migrate`.
 2. `User`-Modell: `has_secure_password`, `normalizes :email_address`, `validates :email_address, presence, uniqueness`, **`validates :password, length: { minimum: 12 }`**, `display_name` präsent (Migration ergänzen).
@@ -177,6 +181,8 @@ Schritte:
 
 ## Phase 4 – Profil (Aufgabe 3)
 
+> **Stand:** umgesetzt. `ProfilesController` (Anzeigename, E-Mail-Änderung), `PasswordsController`, `EmailConfirmationsController`, `UserMailer`. Statt Token-Spalten wird `generates_token_for :email_confirmation` (signiert, 1 h gültig, ungültig sobald `unconfirmed_email` wechselt) verwendet; nur `users.unconfirmed_email` ist neu. Tests: `test/integration/profile_test.rb`. Im Development landet der Link im Log (`delivery_method = :test`).
+
 1. Singular Resource `resource :profile` → `ProfilesController#show/edit/update`.
 2. Anzeigename ändern (Anforderung 9).
 3. Passwort ändern: aktuelles Passwort verlangen, neues mind. 12 Zeichen.
@@ -191,7 +197,7 @@ Schritte:
 ## Phase 5 – Gruppen und Mitglieder (Aufgabe 4, Anforderungen 2 und 8)
 
 1. `GroupsController`: `index` (Meine Gruppen), `new/create`, `show`.
-   - Beim Erstellen wird der Ersteller **Host** (Membership mit `role: host`) – Gruppe und Membership in **einer Transaktion**.
+   - Beim Erstellen wird der Ersteller **Host** (Membership mit `role: host`) – Gruppe, Membership und `Score` in **einer Transaktion**.
 2. **Beitreten per Code**: `JoinsController#new/create` (oder `groups/join`): Code eingeben → Gruppe suchen → Membership anlegen.
    - **Locking (Anforderung «letzter Platz»)**:
      ```ruby
@@ -199,10 +205,11 @@ Schritte:
        group = Group.lock.find_by!(invite_code: code)   # unter SQLite: BEGIN IMMEDIATE
        raise GroupFull if group.memberships.count >= group.member_limit
        group.memberships.create!(user: current_user, role: :player)
+       group.scores.create!(user: current_user)   # Punktestand für diese Gruppe
      end
      ```
      Doppelte Mitgliedschaft fängt der Unique-Index (`ActiveRecord::RecordNotUnique`) ab.
-3. **Mitgliederverwaltung** (Host): Liste der Mitglieder, Entfernen (`MembershipsController#destroy`), Einladungscode anzeigen.
+3. **Mitgliederverwaltung** (Host): Liste der Mitglieder, Entfernen (`MembershipsController#destroy`), Einladungscode anzeigen. Beim Entfernen bleibt der `Score` bestehen oder wird mit entfernt – Entscheid dokumentieren (Empfehlung: Score löschen, Teilnahmen bleiben).
 4. Views nach Wireframe 02 (Gruppenkarten mit Rolle-Badge «HOST»).
 5. Fehlerfälle: falscher Code, Gruppe voll, schon Mitglied → verständliche Meldung, Eingabe bleibt.
 6. Commit.
@@ -287,7 +294,8 @@ Participation.transaction do
   if correct?(params[:guess], round.song)
     points = Round::POINTS[stage]
     participation.update!(correct: true, points:, stage_reached: stage)
-    Membership.update_counters(membership.id, total_points: points)   # atomar: UPDATE … SET total_points = total_points + ?
+    score = Score.find_or_create_by!(user:, group: round.group)
+    score.add_points!(points)   # Score.update_counters – atomar: UPDATE … SET total_points = total_points + ?
   end
 end
 ```
@@ -327,10 +335,10 @@ end
    - Nach jedem Tipp: Live-Status (✓ / …) für alle aktualisieren.
 3. **Gleichzeitiger Start**: Der Start-Zeitpunkt kommt vom Server (`started_at`); Clients berechnen die Stufe daraus (kleine Abweichung durch Netzwerklatenz ist ok, dokumentieren).
 4. **Bestenliste** (`LeaderboardsController#show`, Wireframe 05):
-   - Sortiert nach `memberships.total_points DESC`, Platz 1–3 als Podium, Rest als Tabelle, Zusatz «Runden gespielt» (`participations.count`).
+   - Sortiert nach `scores.total_points DESC` (`Score.leaderboard`), Platz 1–3 als Podium, Rest als Tabelle, Zusatz «Runden gespielt» (`participations.count`).
    - Nach Rundenende per Turbo Stream an alle Gruppenmitglieder (Ziel: < 1 s).
    - Eigene Zeile hervorheben.
-5. **Performance**: `includes(:user)` gegen N+1, Index auf `memberships(group_id, total_points)`.
+5. **Performance**: `includes(:user)` gegen N+1, Index auf `scores(group_id, total_points)` (vorhanden).
 6. Manueller Mehrbenutzer-Test: 2 Browser (normal + Inkognito), optional 20 Sessions per Skript.
 7. Commit.
 
@@ -460,6 +468,6 @@ Die Tabelle im **Bewertungsraster** oben Zeile für Zeile durchgehen und pro Kri
 | Nur eine aktive Runde pro Gruppe | Partieller Unique-Index + `RecordNotUnique` abfangen |
 | Eine Teilnahme pro Benutzer und Runde | Unique-Index `[user_id, round_id]` + `find_or_create_by!` |
 | Gleichzeitige Tipps überschreiben sich nicht | Eigener Datensatz pro Mitglied, `lock_version` (optimistisch) |
-| Punkte-Summe ohne Lost Update | `update_counters` (atomares SQL-`+`) in Transaktion |
+| Punkte-Summe ohne Lost Update (`Score`) | `Score#add_points!` = `update_counters` (atomares SQL-`+`) in Transaktion |
 | Letzter freier Gruppenplatz | Transaktion mit `Group.lock` (SQLite: `BEGIN IMMEDIATE`) + Unique-Index |
 | Änderung + Aktivität | Gemeinsame Transaktion (alles oder nichts) |

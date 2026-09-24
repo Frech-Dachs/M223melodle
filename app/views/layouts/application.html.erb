@@ -27,6 +27,7 @@
     <header>
       <strong>Melodle</strong>
       <% if logged_in? %>
+        <%= link_to "Profil", profile_path %>
         <%= button_to "Abmelden", session_path, method: :delete %>
       <% end %>
     </header>
