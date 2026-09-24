@@ -1,0 +1,47 @@
+<h1>Songliste – <%= @group.name %></h1>
+
+<%= form_with url: group_songs_path(@group), method: :get do %>
+  <%= search_field_tag :q, @query, placeholder: "Titel oder Interpret suchen" %>
+  <%= submit_tag "Suchen", name: nil %>
+  <%= link_to "Zurücksetzen", group_songs_path(@group) if @query.present? %>
+<% end %>
+
+<% if @songs.any? %>
+  <table>
+    <thead><tr><th>Titel</th><th>Interpret</th><th>Hinzugefügt von</th><th></th></tr></thead>
+    <tbody>
+      <% @songs.each do |song| %>
+        <tr>
+          <td><%= song.title %></td>
+          <td><%= song.artist %></td>
+          <td><%= song.added_by.display_name %></td>
+          <td>
+            <% if policy(song).destroy? %>
+              <%= button_to "Entfernen", group_song_path(@group, song), method: :delete,
+                    form: { data: { turbo_confirm: "«#{song.title}» wirklich entfernen?" } } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p><%= @query.present? ? "Keine Songs gefunden." : "Noch keine Songs in dieser Gruppe." %></p>
+<% end %>
+
+<% if policy(@song).create? %>
+  <h2>Song hinzufügen</h2>
+  <%= form_with model: @song, url: group_songs_path(@group) do |f| %>
+    <% if @song.errors.any? %>
+      <ul>
+        <% @song.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+      </ul>
+    <% end %>
+    <p><%= f.label :title, "Titel" %><br><%= f.text_field :title %></p>
+    <p><%= f.label :artist, "Interpret" %><br><%= f.text_field :artist %></p>
+    <p><%= f.label :audio_url, "Audio-Datei (z. B. /audio/song.mp3)" %><br><%= f.text_field :audio_url %></p>
+    <%= f.submit "Hinzufügen" %>
+  <% end %>
+<% end %>
+
+<p><%= link_to "Zurück zur Gruppe", @group %></p>

@@ -1,2 +1,17 @@
 <h1>Hallo <%= current_user.display_name %></h1>
-<p>Hier erscheinen bald deine Gruppen.</p>
+
+<h2>Meine Gruppen</h2>
+<% if @memberships.any? %>
+  <ul>
+    <% @memberships.each do |membership| %>
+      <li>
+        <%= link_to membership.group.name, membership.group %>
+        <%= "(Host)" if membership.host? %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Du bist noch in keiner Gruppe.</p>
+<% end %>
+
+<p><%= link_to "Gruppe erstellen", new_group_path %> · <%= link_to "Gruppe beitreten", new_join_path %></p>

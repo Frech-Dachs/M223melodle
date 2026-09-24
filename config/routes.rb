@@ -4,6 +4,11 @@ Rails.application.routes.draw do
   resource :session, only: %i[new create destroy]
   resources :users, only: %i[new create]
   resource :dashboard, only: :show
+  resources :groups, only: %i[new create show] do
+    resources :memberships, only: :destroy
+    resources :songs, only: %i[index create destroy]
+  end
+  resource :join, only: %i[new create]
   resource :profile, only: %i[show edit update]
   resource :password, only: %i[edit update]
   get "email_confirmations/:token", to: "email_confirmations#show", as: :email_confirmation

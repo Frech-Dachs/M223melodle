@@ -1,4 +1,7 @@
 class Group < ApplicationRecord
+  class Full < StandardError; end
+  class AlreadyMember < StandardError; end
+
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :scores, dependent: :destroy
@@ -13,6 +16,38 @@ class Group < ApplicationRecord
 
   def full?
     memberships.count >= member_limit
+  end
+
+  # Creates a group with its host in one transaction.
+  def self.create_with_host!(attributes, host)
+    transaction do
+      group = create!(attributes)
+      group.memberships.create!(user: host, role: :host)
+      group.scores.create!(user: host)
+      group
+    end
+  end
+
+  # Adds a player. Runs in a write transaction (SQLite: BEGIN IMMEDIATE), so two users
+  # racing for the last seat are serialised: the second one sees the group as full.
+  def self.join!(invite_code, user)
+    transaction do
+      group = find_by!(invite_code: invite_code.to_s.strip.upcase)
+      raise AlreadyMember if group.memberships.exists?(user_id: user.id)
+      raise Full if group.full?
+      group.memberships.create!(user: user, role: :player)
+      group.scores.find_or_create_by!(user: user)
+      group
+    end
+  rescue ActiveRecord::RecordNotUnique
+    raise AlreadyMember
+  end
+
+  def remove_member!(membership)
+    transaction do
+      scores.where(user_id: membership.user_id).destroy_all
+      membership.destroy!
+    end
   end
 
   private

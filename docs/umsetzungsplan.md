@@ -196,6 +196,8 @@ Schritte:
 
 ## Phase 5 – Gruppen und Mitglieder (Aufgabe 4, Anforderungen 2 und 8)
 
+> **Stand:** umgesetzt. Logik im Model (`Group.create_with_host!`, `Group.join!`, `Group#remove_member!`), Controller `GroupsController`, `JoinsController`, `MembershipsController`; die «Meine Gruppen»-Liste ist das Dashboard. Locking beim Beitritt: Rails 8.1 startet SQLite-Transaktionen mit `BEGIN IMMEDIATE`, dadurch werden Schreib-Transaktionen serialisiert (`Group.lock` ist unter SQLite wirkungslos und wurde weggelassen); Doppelmitgliedschaft fängt der Unique-Index. Beim Entfernen wird der `Score` gelöscht. Die Host-Prüfung im `MembershipsController` ist provisorisch und wird in Phase 6 durch Pundit ersetzt. Tests: `test/integration/groups_test.rb`. Ein echter Thread-Test für den letzten Platz folgt in Phase 11.
+
 1. `GroupsController`: `index` (Meine Gruppen), `new/create`, `show`.
    - Beim Erstellen wird der Ersteller **Host** (Membership mit `role: host`) – Gruppe, Membership und `Score` in **einer Transaktion**.
 2. **Beitreten per Code**: `JoinsController#new/create` (oder `groups/join`): Code eingeben → Gruppe suchen → Membership anlegen.
@@ -220,6 +222,8 @@ Schritte:
 
 ## Phase 6 – Rollen und Berechtigungen (Aufgabe 5)
 
+> **Stand:** umgesetzt. Pundit 2.5 eingebunden (`ApplicationController` inkl. Rescue von `NotAuthorizedError` → Redirect mit Meldung). Policies: `GroupPolicy` (mit Scope), `MembershipPolicy`, `SongPolicy`, `RoundPolicy`; die Rolle wird pro Gruppe aus der `Membership` gelesen (Helper in `ApplicationPolicy`). `MembershipsController`/`GroupsController` nutzen `policy_scope` + `authorize`, die Views `policy(...)`. Songs und Runden sind als Policies bereit, die Controller folgen in Phase 7/8 und müssen `authorize` aufrufen. `verify_authorized` wurde bewusst nicht global aktiviert (Login-, Profil- und Dashboard-Controller betreffen nur den eigenen Benutzer). Tests: `test/policies/policies_test.rb` und `test/integration/groups_test.rb`.
+
 1. `gem "pundit"`, `bundle install`, `bin/rails g pundit:install`.
 2. In `ApplicationController`: `include Pundit::Authorization`, `pundit_user` → `Current.user`, `after_action :verify_authorized` (wo passend), Rescue `Pundit::NotAuthorizedError` → Redirect mit Meldung.
 3. Policies (`bin/rails g pundit:policy group` usw.):
@@ -242,6 +246,8 @@ Schritte:
 ---
 
 ## Phase 7 – Songliste (Anforderung 3, Wireframe 03)
+
+> **Stand:** umgesetzt. `SongsController` (`index`, `create`, `destroy`) unter `groups`, Autorisierung über `SongPolicy` (Mitglieder sehen, nur Host ändert). Audio-Quelle: `audio_url` (Pfad `/audio/…` oder http(s)-URL, andere Schemas wie `javascript:` werden abgelehnt). Suche über `Song.search` mit `sanitize_sql_like` und Parameter-Binding. Ein Song, der schon in einer Runde gespielt wurde, kann nicht entfernt werden (`restrict_with_error`, verständliche Meldung). Der Button «Runde starten» folgt in Phase 8, wenn es `RoundsController` gibt. Tests: `test/integration/songs_test.rb`.
 
 1. `SongsController` (verschachtelt unter `groups`): `index`, `create`, `destroy`.
 2. **Audio-Quelle festlegen** (Entscheidung, dann konsequent):

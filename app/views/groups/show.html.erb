@@ -1,0 +1,26 @@
+<h1><%= @group.name %></h1>
+
+<p>Einladungscode: <strong><%= @group.invite_code %></strong> (<%= @memberships.size %> / <%= @group.member_limit %> Mitglieder)</p>
+
+<h2>Mitglieder</h2>
+<table>
+  <thead><tr><th>Name</th><th>Rolle</th><th></th></tr></thead>
+  <tbody>
+    <% @memberships.each do |membership| %>
+      <tr>
+        <td><%= membership.user.display_name %></td>
+        <td><%= membership.host? ? "Host" : "Spieler" %></td>
+        <td>
+          <% if policy(membership).destroy? %>
+            <%= button_to "Entfernen", group_membership_path(@group, membership), method: :delete,
+                  form: { data: { turbo_confirm: "#{membership.user.display_name} wirklich entfernen?" } } %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<p><%= link_to "Songliste (#{@group.songs.count})", group_songs_path(@group) %></p>
+
+<p><%= link_to "Zurück zum Dashboard", dashboard_path %></p>

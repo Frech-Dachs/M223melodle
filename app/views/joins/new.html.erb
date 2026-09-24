@@ -1,0 +1,8 @@
+<h1>Gruppe beitreten</h1>
+
+<%= form_with url: join_path do %>
+  <p><%= label_tag :invite_code, "Einladungscode" %><br><%= text_field_tag :invite_code, params[:invite_code] %></p>
+  <%= submit_tag "Beitreten" %>
+<% end %>
+
+<p><%= link_to "Abbrechen", dashboard_path %></p>

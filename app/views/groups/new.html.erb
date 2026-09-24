@@ -1,0 +1,15 @@
+<h1>Gruppe erstellen</h1>
+
+<%= form_with model: @group do |f| %>
+  <% if @group.errors.any? %>
+    <ul>
+      <% @group.errors.full_messages.each do |message| %><li><%= message %></li><% end %>
+    </ul>
+  <% end %>
+
+  <p><%= f.label :name, "Name der Gruppe" %><br><%= f.text_field :name %></p>
+  <p><%= f.label :member_limit, "Mitgliederlimit" %><br><%= f.number_field :member_limit, min: 1, value: @group.member_limit %></p>
+  <%= f.submit "Gruppe erstellen" %>
+<% end %>
+
+<p><%= link_to "Abbrechen", dashboard_path %></p>
