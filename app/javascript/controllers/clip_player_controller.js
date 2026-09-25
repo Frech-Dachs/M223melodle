@@ -1,29 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Plays the current clip (first N seconds) and refreshes the page when the next stage starts.
-// The page is morphed on refresh, so the timer is rescheduled whenever the server sends a new value.
+// Plays the current clip (first N seconds). The player's stage only changes after their own
+// wrong guess, which reloads the page with the new clip length.
 export default class extends Controller {
   static targets = [ "audio" ]
-  static values = { seconds: Number, refreshIn: Number }
-
-  connect() {
-    this.schedule()
-  }
-
-  refreshInValueChanged() {
-    this.schedule()
-  }
+  static values = { seconds: Number }
 
   disconnect() {
-    clearTimeout(this.refreshTimer)
     clearTimeout(this.stopTimer)
-  }
-
-  schedule() {
-    clearTimeout(this.refreshTimer)
-    if (this.refreshInValue > 0) {
-      this.refreshTimer = setTimeout(() => window.Turbo.visit(window.location.href, { action: "replace" }), this.refreshInValue)
-    }
   }
 
   play() {

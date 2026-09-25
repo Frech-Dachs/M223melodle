@@ -265,9 +265,7 @@ Schritte:
 
 ## Phase 8 – Kernfunktion: Rate-Runde (Anforderungen 4–6)
 
-> **Stand:** umgesetzt (ohne Echtzeit, die folgt in Phase 9). Regeln als Konstanten in `Round`: 7 Stufen (0.1 / 0.5 / 1 / 2 / 4 / 8 / 16 s), 10 s pro Stufe, Punkte 100 / 80 / 60 / 40 / 25 / 10 / 5. `Round.start!` (Doppelstart → `AlreadyActive`, abgelaufene Runden geben den Platz frei), `Round#guess!` (Ergebnis `:correct`/`:wrong`/`:already`/`:closed`, alles unter `with_lock` in einer Transaktion, Punkte via `Score#add_points!`), `Round#finish!` (trägt 0 Punkte für alle Nicht-Löser ein). Die Runde endet, sobald alle Mitglieder gelöst haben oder die letzte Stufe abläuft. Abgelaufene Runden werden **lazy** beim nächsten Zugriff beendet (kein Job). Falsche Tipps sind unbegrenzt möglich und werden nicht gespeichert. UI: `RoundsController` (`create`, `show`), `GuessesController`, Stimulus-Controller `clip_player_controller.js` (spielt nur den erlaubten Ausschnitt und lädt zur nächsten Stufe neu). Start-Buttons in der Songliste (pro Song und «zufälliger Song»), Link «Jetzt mitspielen» auf der Gruppenseite. Der Songtitel steht erst nach Rundenende im HTML. **Bekannte Einschränkung:** die Ausschnittslänge wird im Browser begrenzt, die `audio_url` steht im HTML; für die Demo opake Dateinamen verwenden. Tests: `test/models/round_test.rb`, `test/integration/rounds_test.rb`.
-
-Das ist der wichtigste Teil. **Zuerst die Regeln als Modellcode + Tests, dann UI.**
+> **Stand (aktuelle Spielregel, ersetzt die frühere zeitbasierte Variante):** Eine Runde ist **asynchron**. Der Host startet sie, jedes Mitglied spielt **wann es will** und **für sich**: `participations.stage` ist die Stufe des Spielers (0.1 / 0.5 / 1 / 2 / 4 / 8 / 16 s) und rückt nur nach dessen **eigenem falschen Tipp** vor; `participations.finished` markiert «gelöst oder keine Versuche mehr». Punkte 100 / 80 / 60 / 40 / 25 / 10 / 5 je nach Stufe beim richtigen Tipp, sonst 0. Die Runde bleibt **aktiv, bis alle Mitglieder fertig sind** (oder der Host sie mit «Runde jetzt beenden» abbricht; wer nicht gespielt hat, erhält 0 Punkte). Es gibt keine Zeitlimits. Ein **Banner auf jeder Seite** («Jetzt mitspielen») zeigt jedem Mitglied laufende Runden, die es noch nicht beendet hat. Wer fertig ist, sieht den Songtitel; alle anderen nicht (Spoiler-Schutz). Tests: `test/models/round_test.rb`, `test/integration/rounds_test.rb`. Die Abschnitte 8.1–8.5 unten beschreiben den ersten Entwurf mit Zeitstufen und sind entsprechend zu lesen: die Stufe kommt aus dem `participation`-Datensatz, nicht aus `started_at`, und ein `FinishRoundJob` ist nicht nötig.
 
 ### 8.1 Spielregeln festlegen
 
@@ -376,6 +374,8 @@ end
 
 ## Phase 11 – Tests (Aufgabe 8)
 
+> **Stand:** umgesetzt. 86 Tests grün. Neu: `test/models/concurrency_test.rb` (Threads: letzter Platz, Doppelstart, atomare Punkte, gleichzeitige und doppelte Tipps), Aussagekraft-Check (Schutz entfernt → Test rot, siehe `docs/tests.md`) und der Testnachweis `docs/tests.md`. Statt umfangreicher Fixtures werden Gruppendaten direkt im Test angelegt (Begründung in `tests.md`). Nicht automatisiert: Browser-Audio und Echtzeit mit mehreren Sitzungen.
+
 Verwende Minitest + Fixtures (`test/fixtures`), Ausführen mit `bin/rails test`.
 
 1. **Fixtures**: users (host, anna, ben, outsider), groups, memberships, songs, rounds (eine aktive, eine beendete), participations.
@@ -402,6 +402,13 @@ Verwende Minitest + Fixtures (`test/fixtures`), Ausführen mit `bin/rails test`.
 ---
 
 ## Phase 12 – Fehlerbehandlung, Sicherheit, Feinschliff
+
+> **Stand:** umgesetzt.
+> - **Fehlerbehandlung:** deutsche Fehlerseiten (`public/404.html`, `422.html`, `500.html`), `rescue_from` für `RecordNotFound` (404), `StaleObjectError` (Konfliktmeldung) und `Pundit::NotAuthorizedError`; Formulare behalten Eingaben bei 422.
+> - **Sicherheit:** `bin/brakeman` (0 Warnungen) und `bin/bundler-audit` (keine Schwachstellen) sind sauber; CSRF-Schutz aktiv (Test); Strong Parameters, Rolle und Punkte nicht über Params setzbar (Test); `force_ssl` und `assume_ssl` in Production; Längenlimits für Songtitel/Interpret/URL; `audio_url` nur Pfad oder http(s).
+> - **Design:** `application.css` im Wireframe-Stil (weiss, grau, Rahmen), Header-Navigation, Flash mit ARIA-Rolle, Fokusrahmen, responsive ab 600 px. Die Seiten sind bewusst schlicht (keine Sidebar/Karten wie im Wireframe); das ist als Abweichung in der Doku zu nennen.
+> - **Demo-Daten:** `bin/rails db:seed` legt Konten, Gruppe und sechs Songs an; die Audio-Dateien sind selbst synthetisierte Melodien (`public/audio/*.wav`, opake Dateinamen, keine Lizenzprobleme).
+> - **Rubocop** ohne Befunde. Tests: `test/integration/error_handling_test.rb`.
 
 - **Serverseitige Validierung** überall; Eingaben im Formular erhalten; Status `422`.
 - **Flash-Meldungen** für Erfolg und Fehler; keine technischen Fehlermeldungen (Stacktraces) anzeigen (`rescue_from` für `RecordNotFound` → 404-Seite, `StaleObjectError` → verständlicher Konflikt).

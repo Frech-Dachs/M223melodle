@@ -40,12 +40,11 @@ class ActivitiesTest < ActionDispatch::IntegrationTest
     assert_equal @host, Group.last.activities.first.actor
   end
 
-  test "round timeout is logged as a system event" do
+  test "round end is logged as a system event" do
     group = Group.create_with_host!({ name: "G", member_limit: 5 }, @host)
     song = group.songs.create!(title: "T", artist: "A", audio_url: "/a.mp3", added_by: @host)
     round = Round.start!(group, song, @host)
-    round.update_columns(started_at: 1.hour.ago)
-    round.expire_if_needed!
+    round.finish!
     finished = group.activities.find_by(action: "round_finished")
     assert_nil finished.actor
     assert_equal "Melodle", finished.actor_name

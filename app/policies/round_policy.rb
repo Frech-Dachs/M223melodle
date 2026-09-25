@@ -7,6 +7,10 @@ class RoundPolicy < ApplicationPolicy
     host_of?(record.group)
   end
 
+  def finish?
+    host_of?(record.group)
+  end
+
   def guess?
     member_of?(record.group)
   end

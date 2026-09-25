@@ -1,9 +1,9 @@
 class Round < ApplicationRecord
   class AlreadyActive < StandardError; end
 
-  # Clip length in seconds per stage, seconds until the next stage begins, points per stage.
+  # Clip length in seconds per stage and points per stage. Every player has their own stage:
+  # it advances after each wrong guess of that player. Players do not have to play at the same time.
   STAGES = [ 0.1, 0.5, 1, 2, 4, 8, 16 ].freeze
-  STAGE_DURATION = 10
   POINTS = [ 100, 80, 60, 40, 25, 10, 5 ].freeze
 
   belongs_to :group
@@ -23,7 +23,6 @@ class Round < ApplicationRecord
   # a double click or retry therefore raises AlreadyActive instead of creating a second round.
   def self.start!(group, song, user)
     transaction do
-      group.rounds.active.each(&:expire_if_needed!) # a timed-out round must not block a new one
       round = group.rounds.create!(song: song, started_by: user, started_at: Time.current)
       Activity.record!(group: group, action: "round_started", actor: user)
       round
@@ -32,27 +31,25 @@ class Round < ApplicationRecord
     raise AlreadyActive
   end
 
-  # The server decides the stage, never the client. nil means all stages are over.
-  def current_stage(now = Time.current)
-    index = ((now - started_at) / STAGE_DURATION).floor
-    index if index < STAGES.size
+  def participation_for(user)
+    participations.find_by(user_id: user.id)
   end
 
-  def expired?(now = Time.current)
-    current_stage(now).nil?
+  # The player's current stage (0 if they have not started yet) and the matching clip length.
+  def stage_for(user)
+    participation_for(user)&.stage || 0
   end
 
-  def clip_seconds(now = Time.current)
-    stage = current_stage(now)
-    stage && STAGES[stage]
+  def clip_seconds_for(user)
+    STAGES[[ stage_for(user), STAGES.size - 1 ].min]
+  end
+
+  def finished_by?(user)
+    participation_for(user)&.finished? || false
   end
 
   def points_for(stage)
     POINTS.fetch(stage)
-  end
-
-  def milliseconds_until_next_stage(now = Time.current)
-    (((started_at + (((now - started_at) / STAGE_DURATION).floor + 1) * STAGE_DURATION) - now) * 1000).ceil
   end
 
   def correct_guess?(text)
@@ -63,54 +60,55 @@ class Round < ApplicationRecord
     text.to_s.downcase.gsub(/[^\p{Alnum}]/, "")
   end
 
-  # Result: :correct, :wrong, :already (has scored) or :closed (round over).
+  # Result: :correct, :wrong, :out_of_tries (last wrong guess), :already (player is done) or :closed (round over).
   # Runs under the round lock so that concurrent guesses are serialised.
-  def guess!(user, text, now = Time.current)
+  def guess!(user, text)
     with_lock do
       next :closed unless active?
-      if expired?(now)
-        finish_locked!
-        next :closed
-      end
-      next :already if participations.exists?(user_id: user.id)
-      unless correct_guess?(text)
-        Activity.record!(group: group, action: "guess_wrong", actor: user)
-        next :wrong
-      end
 
-      stage = current_stage(now)
-      points = points_for(stage)
-      participations.create!(user: user, correct: true, points: points, stage_reached: stage)
-      Score.find_or_create_by!(user: user, group: group).add_points!(points) # atomic UPDATE total = total + n
-      Activity.record!(group: group, action: "guess_correct", actor: user, points: points)
-      finish_locked! if everyone_scored?
-      :correct
+      participation = participations.find_or_create_by!(user_id: user.id)
+      next :already if participation.finished?
+
+      if correct_guess?(text)
+        points = points_for(participation.stage)
+        participation.update!(correct: true, points: points, stage_reached: participation.stage, finished: true)
+        Score.find_or_create_by!(user: user, group: group).add_points!(points) # atomic UPDATE total = total + n
+        Activity.record!(group: group, action: "guess_correct", actor: user, points: points)
+        result = :correct
+      else
+        Activity.record!(group: group, action: "guess_wrong", actor: user)
+        participation.stage += 1
+        participation.finished = participation.stage >= STAGES.size
+        participation.stage = STAGES.size - 1 if participation.finished
+        participation.save!
+        result = participation.finished? ? :out_of_tries : :wrong
+      end
+      finish_locked! if everyone_finished?
+      result
     end
   rescue ActiveRecord::RecordNotUnique
     :already
   end
 
-  def expire_if_needed!
-    finish! if active? && expired?
-  end
-
+  # Host ends the round early, e.g. when a player never plays.
   def finish!
     with_lock { finish_locked! }
   end
 
   private
 
-  def everyone_scored?
-    group.memberships.where.not(user_id: participations.select(:user_id)).none?
+  def everyone_finished?
+    group.memberships.where.not(user_id: participations.where(finished: true).select(:user_id)).none?
   end
 
-  # Marks the round finished and records 0 points for everybody who did not guess it.
+  # Marks the round finished; everybody who has not solved it ends with 0 points.
   def finish_locked!
     return unless active?
     update!(status: :finished)
     Activity.record!(group: group, action: "round_finished", actor: nil, title: song.title)
+    participations.where(finished: false).update_all(finished: true)
     group.memberships.where.not(user_id: participations.select(:user_id)).find_each do |membership|
-      participations.create!(user_id: membership.user_id, correct: false, points: 0)
+      participations.create!(user_id: membership.user_id, correct: false, points: 0, finished: true)
     end
   end
 end

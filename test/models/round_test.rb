@@ -13,14 +13,15 @@ class RoundTest < ActiveSupport::TestCase
   def start = Round.start!(@group, @song, @host)
   def points(user) = Score.find_by(user: user, group: @group).total_points
 
-  test "stage is derived from the server clock" do
+  test "each player has their own stage, advancing only after their own wrong guess" do
     round = start
-    t = round.started_at
-    assert_equal 0, round.current_stage(t + 1)
-    assert_equal 1, round.current_stage(t + Round::STAGE_DURATION + 1)
-    assert_equal 6, round.current_stage(t + 6 * Round::STAGE_DURATION + 1)
-    assert_nil round.current_stage(t + 7 * Round::STAGE_DURATION)
-    assert round.expired?(t + 7 * Round::STAGE_DURATION)
+    round.update_columns(started_at: 1.hour.ago) # time does not matter
+    assert_equal 0, round.stage_for(@anna)
+    round.guess!(@anna, "nope")
+    assert_equal 1, round.stage_for(@anna)
+    assert_equal Round::STAGES[1], round.clip_seconds_for(@anna)
+    assert_equal 0, round.stage_for(@ben)
+    assert_equal Round::STAGES[0], round.clip_seconds_for(@ben)
   end
 
   test "guess is normalised" do
@@ -29,43 +30,64 @@ class RoundTest < ActiveSupport::TestCase
     assert_not round.correct_guess?("Bohemian")
   end
 
-  test "correct guess gives points of the current stage" do
+  test "players may play at different times and get points for their own stage" do
     round = start
-    assert_equal :correct, round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 1)
+    assert_equal :correct, round.guess!(@anna, "Bohemian Rhapsody")
     assert_equal 100, points(@anna)
-    assert round.reload.active? # host and ben have not guessed yet
-    assert_equal :correct, round.guess!(@ben, "bohemian rhapsody", round.started_at + Round::STAGE_DURATION * 3 + 1)
+    assert round.reload.active? # host and ben have not played yet
+    3.times { assert_equal :wrong, round.guess!(@ben, "nope") }
+    assert_equal :correct, round.guess!(@ben, "bohemian rhapsody")
     assert_equal 40, points(@ben)
+    assert round.reload.active? # the host can still join later
+    assert_equal :correct, round.guess!(@host, "Bohemian Rhapsody")
+    assert round.reload.finished?
   end
 
-  test "wrong guess gives nothing and can be repeated" do
+  test "wrong guesses are not booked as participation results" do
     round = start
-    assert_equal :wrong, round.guess!(@anna, "nope", round.started_at + 1)
-    assert_equal 0, round.participations.count
-    assert_equal :correct, round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 2)
+    assert_equal :wrong, round.guess!(@anna, "nope")
+    participation = round.participation_for(@anna)
+    assert_not participation.finished?
+    assert_equal 0, participation.points
+    assert_equal :correct, round.guess!(@anna, "Bohemian Rhapsody")
   end
 
-  test "a second correct guess by the same user is rejected and scores nothing" do
+  test "a second guess after finishing is rejected and scores nothing" do
     round = start
-    round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 1)
-    assert_equal :already, round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 2)
+    round.guess!(@anna, "Bohemian Rhapsody")
+    assert_equal :already, round.guess!(@anna, "Bohemian Rhapsody")
     assert_equal 100, points(@anna)
   end
 
-  test "guess after the last stage is closed and finishes the round with 0 points" do
+  test "a player who is out of tries is done with 0 points, the round goes on for the others" do
     round = start
-    assert_equal :closed, round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 7 * Round::STAGE_DURATION)
+    (Round::STAGES.size - 1).times { assert_equal :wrong, round.guess!(@anna, "nope") }
+    assert_equal :out_of_tries, round.guess!(@anna, "nope")
+    assert round.finished_by?(@anna)
+    assert_equal 0, points(@anna)
+    assert_equal :already, round.guess!(@anna, "Bohemian Rhapsody")
+    assert round.reload.active?
+  end
+
+  test "round finishes when every member is done" do
+    round = start
+    round.guess!(@host, "Bohemian Rhapsody")
+    round.guess!(@anna, "Bohemian Rhapsody")
+    assert round.reload.active?
+    Round::STAGES.size.times { round.guess!(@ben, "nope") }
+    assert round.reload.finished?
+    assert_equal :closed, round.guess!(@anna, "Bohemian Rhapsody")
+  end
+
+  test "host can finish early, players who did not play get 0 points" do
+    round = start
+    round.guess!(@anna, "Bohemian Rhapsody")
+    round.finish!
     assert round.reload.finished?
     assert_equal 3, round.participations.count
-    assert_equal [ 0 ], round.participations.pluck(:points).uniq
-    assert_equal 0, points(@anna)
-  end
-
-  test "round finishes when every member has guessed" do
-    round = start
-    [ @host, @anna, @ben ].each { |u| round.guess!(u, "Bohemian Rhapsody", round.started_at + 1) }
-    assert round.reload.finished?
-    assert_equal :closed, round.guess!(@anna, "Bohemian Rhapsody", round.started_at + 2)
+    assert_equal({ true => 1, false => 2 }, round.participations.group(:correct).count.transform_keys { |k| k })
+    assert round.participations.all?(&:finished?)
+    assert_equal :closed, round.guess!(@ben, "Bohemian Rhapsody")
   end
 
   test "only one active round per group, a second start is rejected" do
@@ -74,10 +96,9 @@ class RoundTest < ActiveSupport::TestCase
     assert_equal 1, @group.rounds.active.count
   end
 
-  test "an expired round does not block a new start" do
+  test "a finished round does not block a new start" do
     round = start
-    round.update_columns(started_at: 1.hour.ago)
+    round.finish!
     assert_nothing_raised { start }
-    assert round.reload.finished?
   end
 end

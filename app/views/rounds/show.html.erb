@@ -1,31 +1,46 @@
 <%= turbo_stream_from @round %>
 <h1>Rate-Runde – <%= @group.name %></h1>
 
-<% if @round.active? %>
-  <% stage = @round.current_stage %>
+<% done = @participation&.finished? %>
+
+<% if @round.active? && !done %>
+  <% stage = @round.stage_for(current_user) %>
   <div data-controller="clip-player"
-       data-clip-player-seconds-value="<%= @round.clip_seconds %>"
-       data-clip-player-refresh-in-value="<%= @round.milliseconds_until_next_stage %>">
-    <p>Stufe <%= stage + 1 %> von <%= Round::STAGES.size %> · Ausschnitt: <%= @round.clip_seconds %> s · Punkte bei richtigem Tipp: <%= @round.points_for(stage) %></p>
+       data-clip-player-seconds-value="<%= @round.clip_seconds_for(current_user) %>">
+    <p>Stufe <%= stage + 1 %> von <%= Round::STAGES.size %> · Ausschnitt: <%= @round.clip_seconds_for(current_user) %> s · Punkte bei richtigem Tipp: <%= @round.points_for(stage) %></p>
     <audio data-clip-player-target="audio" preload="auto" src="<%= @round.song.audio_url %>"></audio>
     <button type="button" data-action="clip-player#play">▶ Ausschnitt abspielen</button>
   </div>
 
-  <% mine = @participations.find { |p| p.user_id == current_user.id } %>
-  <% if mine %>
-    <p>Du hast den Song erraten (<%= mine.points %> Punkte). Warte auf die anderen …</p>
-  <% else %>
-    <%= form_with url: round_guesses_path(@round) do %>
-      <p><%= label_tag :guess, "Songtitel" %><br><%= text_field_tag :guess, nil, autocomplete: "off", autofocus: true %></p>
-      <%= submit_tag "Raten" %>
-    <% end %>
+  <%= form_with url: round_guesses_path(@round) do %>
+    <p><%= label_tag :guess, "Songtitel" %><br><%= text_field_tag :guess, nil, autocomplete: "off", autofocus: true %></p>
+    <%= submit_tag "Raten" %>
   <% end %>
+  <p>Du kannst jederzeit spielen, alle in der Gruppe spielen unabhängig voneinander.</p>
+<% elsif @round.active? %>
+  <% if @participation.correct? %>
+    <p>Richtig! Du hast <%= @participation.points %> Punkte bekommen.</p>
+  <% else %>
+    <p>Leider nicht erraten.</p>
+  <% end %>
+  <p>Der Song war: <strong><%= @round.song.title %></strong> von <%= @round.song.artist %></p>
+  <p>Die Runde läuft weiter, bis alle Mitglieder gespielt haben.</p>
+<% end %>
 
-  <h2>Bereits erraten</h2>
+<% if @round.active? %>
+  <h2>Schon gespielt</h2>
   <% if @participations.any? %>
     <ul><% @participations.each do |p| %><li><%= p.user.display_name %> – <%= p.points %> Punkte</li><% end %></ul>
   <% else %>
     <p>Noch niemand.</p>
+  <% end %>
+
+  <h2>Noch offen</h2>
+  <p><%= @still_playing.map(&:display_name).to_sentence %></p>
+
+  <% if policy(@round).finish? %>
+    <%= button_to "Runde jetzt beenden", finish_round_path(@round),
+          form: { data: { turbo_confirm: "Alle, die noch nicht gespielt haben, bekommen 0 Punkte. Runde wirklich beenden?" } } %>
   <% end %>
 <% else %>
   <h2>Runde beendet</h2>

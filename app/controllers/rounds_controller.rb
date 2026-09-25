@@ -16,8 +16,16 @@ class RoundsController < ApplicationController
   def show
     @round = Round.where(group_id: current_user.group_ids).find(params[:id]) # other groups' rounds: 404
     authorize @round
-    @round.expire_if_needed!
     @group = @round.group
-    @participations = @round.participations.includes(:user).order(points: :desc)
+    @participation = @round.participation_for(current_user)
+    @participations = @round.participations.where(finished: true).includes(:user).order(points: :desc)
+    @still_playing = @group.users.where.not(id: @participations.map(&:user_id)).order(:display_name)
+  end
+
+  def finish
+    round = Round.where(group_id: current_user.group_ids).find(params[:id])
+    authorize round, :finish?
+    round.finish!
+    redirect_to round, notice: "Runde beendet."
   end
 end

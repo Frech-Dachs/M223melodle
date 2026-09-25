@@ -1,10 +1,96 @@
-/*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
- */
+/* Melodle – schlichtes Layout nach den Wireframes (weiss, grau, Rahmen) */
+:root {
+  --text: #333333;
+  --muted: #888888;
+  --border: #999999;
+  --line: #cccccc;
+  --bg: #ffffff;
+  --accent: #333333;
+  --ok: #2e6b3a;
+  --error: #a12a2a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 64px;
+  padding: 0 36px;
+  border-bottom: 1px solid var(--line);
+}
+header strong { font-size: 18px; margin-right: auto; }
+header a { font-size: 14px; color: var(--muted); }
+header a:hover { color: var(--text); }
+header form { margin: 0; }
+
+main { max-width: 860px; margin: 0 auto; padding: 24px 36px 64px; }
+
+h1 { font-size: 22px; margin: 0 0 16px; }
+h2 { font-size: 16px; margin: 28px 0 10px; }
+
+a { color: var(--text); }
+
+/* Flash messages */
+.flash { max-width: 860px; margin: 16px auto 0; padding: 10px 14px; border: 1px solid var(--border); }
+.flash.notice { border-color: var(--ok); color: var(--ok); }
+.flash.alert { border-color: var(--error); color: var(--error); }
+
+/* Forms */
+form p { margin: 0 0 14px; }
+label { font-size: 13px; color: var(--muted); }
+input[type="text"], input[type="email"], input[type="password"],
+input[type="search"], input[type="number"] {
+  width: 100%;
+  max-width: 420px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font: inherit;
+}
+input:focus-visible, button:focus-visible, input[type="submit"]:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button, input[type="submit"] {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+button:hover, input[type="submit"]:hover { background: var(--accent); color: var(--bg); }
+
+/* Validation errors (lists directly inside forms) */
+form > ul { margin: 0 0 16px; padding: 10px 14px 10px 30px; border: 1px solid var(--error); color: var(--error); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; }
+td form { display: inline; }
+tr.me { background: #f2f2f2; }
+
+/* Lists (dashboard, feed) */
+main ul { padding-left: 20px; }
+main > ul li { margin-bottom: 6px; }
+time { color: var(--muted); font-size: 12px; }
+dt { font-size: 12px; color: var(--muted); }
+dd { margin: 0 0 12px; }
+
+@media (max-width: 600px) {
+  header, main { padding-left: 16px; padding-right: 16px; }
+}

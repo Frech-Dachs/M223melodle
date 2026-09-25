@@ -12,6 +12,7 @@ Rails.application.routes.draw do
     resources :activities, only: :index
   end
   resources :rounds, only: :show do
+    post :finish, on: :member
     resources :guesses, only: :create
   end
   resource :join, only: %i[new create]

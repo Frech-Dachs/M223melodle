@@ -12,6 +12,8 @@ class Song < ApplicationRecord
   normalizes :title, :artist, :audio_url, with: ->(value) { value.strip }
 
   validates :title, :artist, :audio_url, presence: true
+  validates :title, :artist, length: { maximum: 100 }
+  validates :audio_url, length: { maximum: 500 }
   validates :audio_url, format: { with: %r{\A(/|https?://)\S+\z}, message: "muss ein Pfad (/audio/…) oder eine http(s)-URL sein" }, allow_blank: true
   validates :title, uniqueness: { scope: [ :group_id, :artist ] }
 end

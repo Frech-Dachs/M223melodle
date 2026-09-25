@@ -34,8 +34,19 @@
       <% end %>
     </header>
     <% flash.each do |type, message| %>
-      <p class="flash <%= type %>"><%= message %></p>
+      <p class="flash <%= type %>" role="<%= type == "alert" ? "alert" : "status" %>"><%= message %></p>
     <% end %>
-    <%= yield %>
+    <% if logged_in? %>
+      <% current_user.groups.each do |group| %><%= turbo_stream_from group %><% end %>
+      <% open_rounds.reject { |round| current_page?(round_path(round)) }.each do |round| %>
+        <p class="flash round-banner" role="status">
+          In <strong><%= round.group.name %></strong> läuft gerade eine Runde!
+          <%= link_to "Jetzt mitspielen", round_path(round) %>
+        </p>
+      <% end %>
+    <% end %>
+    <main>
+      <%= yield %>
+    </main>
   </body>
 </html>

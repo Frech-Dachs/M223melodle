@@ -75,12 +75,12 @@ class RoundsTest < ActionDispatch::IntegrationTest
     round = Round.start!(@group, @song, @host)
     login(@player)
     post round_guesses_path(round), params: { guess: "nope" }
-    assert_equal 0, round.participations.count
+    assert_equal 0, round.participations.where(finished: true).count
+    post round_guesses_path(round), params: { guess: "wonderwall" }
+    assert_equal 1, round.participations.where(finished: true).count
     post round_guesses_path(round), params: { guess: "wonderwall" }
     assert_equal 1, round.participations.count
-    post round_guesses_path(round), params: { guess: "wonderwall" }
-    assert_equal 1, round.participations.count
-    assert_equal 100, Score.find_by(user: @player, group: @group).total_points
+    assert_equal 80, Score.find_by(user: @player, group: @group).total_points
   end
 
   test "guessing in a finished round is refused and result page shows the song" do
@@ -91,5 +91,79 @@ class RoundsTest < ActionDispatch::IntegrationTest
     assert_equal 0, Score.find_by(user: @player, group: @group).total_points
     get round_path(round)
     assert_match(/Wonderwall/, response.body)
+  end
+
+  test "members see a running round on every page and can join it" do
+    round = Round.start!(@group, @song, @host)
+    login(@player)
+    get dashboard_path
+    assert_select ".round-banner a[href=?]", round_path(round)
+    get profile_path
+    assert_select ".round-banner a[href=?]", round_path(round)
+    get round_path(round)
+    assert_select ".round-banner", 0 # already on the round page
+  end
+
+  test "no banner for outsiders or when the round is over" do
+    round = Round.start!(@group, @song, @host)
+    login(@outsider)
+    get dashboard_path
+    assert_select ".round-banner", 0
+    round.finish!
+    login(@player)
+    get dashboard_path
+    assert_select ".round-banner", 0
+  end
+
+  test "a player can join later, after the host has already finished, and the banner stays until they played" do
+    round = Round.start!(@group, @song, @host)
+    round.guess!(@host, "Wonderwall")
+    assert round.reload.active?
+
+    login(@player)
+    get dashboard_path
+    assert_select ".round-banner a[href=?]", round_path(round)
+    post round_guesses_path(round), params: { guess: "nope" }
+    get dashboard_path
+    assert_select ".round-banner", 1 # still playing
+    post round_guesses_path(round), params: { guess: "wonderwall" }
+    assert round.reload.finished? # last member done
+    get dashboard_path
+    assert_select ".round-banner", 0
+  end
+
+  test "banner is gone for a player who has finished while others still play" do
+    round = Round.start!(@group, @song, @host)
+    login(@player)
+    post round_guesses_path(round), params: { guess: "wonderwall" }
+    assert round.reload.active? # host has not played
+    get dashboard_path
+    assert_select ".round-banner", 0
+    login(@host, "correct-horse-battery")
+    get dashboard_path
+    assert_select ".round-banner", 1
+  end
+
+  test "the song title is revealed only to players who have finished" do
+    round = Round.start!(@group, @song, @host)
+    login(@player)
+    get round_path(round)
+    assert_no_match(/Wonderwall/, response.body)
+    post round_guesses_path(round), params: { guess: "wonderwall" }
+    get round_path(round)
+    assert_match(/Wonderwall/, response.body)
+    login(@host, "correct-horse-battery")
+    get round_path(round)
+    assert_no_match(/Wonderwall/, response.body)
+  end
+
+  test "only the host can end a round early" do
+    round = Round.start!(@group, @song, @host)
+    login(@player)
+    post finish_round_path(round)
+    assert round.reload.active?
+    login(@host, "correct-horse-battery")
+    post finish_round_path(round)
+    assert round.reload.finished?
   end
 end
