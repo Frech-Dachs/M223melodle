@@ -61,8 +61,8 @@ Das Datenmodell umfasst die Entitäten Benutzer, Gruppe, Gruppenmitgliedschaft (
 
 ### Breadboards
 
-[Hier würden handgezeichnete Skizzen der wichtigsten User-Flows eingefügt werden, z.B. für Registrierung/Login, Gruppe erstellen und Songliste zusammenstellen, einer Gruppe per Einladungscode beitreten, eine Rate-Runde starten und daran teilnehmen (Ausschnitt hören, Tipp abgeben), sowie das Einsehen der Bestenliste.]
+Die Breadboards aller User-Flows (Registrierung/Login, Gruppe erstellen und beitreten, Songliste zusammenstellen, Rate-Runde starten und spielen, Bestenliste) stehen in der textuellen Kurskonvention in der [Projektdokumentation, Kapitel 7](dokumentation_melodle.md#7-breadboards).
 
 ### Fat-Marker-Sketches
 
-Siehe beiliegende Wireframes (Login, Gruppenübersicht, Songlisten-Verwaltung, Rate-Runde, Bestenliste).
+Siehe beiliegende Wireframes (Login, Gruppenübersicht, Songlisten-Verwaltung, Rate-Runde, Bestenliste): HTML-Quellen `01-login.html` bis `05-bestenliste.html`, als Bilder unter [images/](images/) und in der [Projektdokumentation, Kapitel 8](dokumentation_melodle.md#8-screens).

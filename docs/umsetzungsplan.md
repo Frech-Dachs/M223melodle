@@ -429,6 +429,8 @@ Verwende Minitest + Fixtures (`test/fixtures`), Ausführen mit `bin/rails test`.
 
 ### 13.1 Dokumentation (`docs/`, Markdown, Bilder eingebunden)
 
+> **Stand:** Die Dokumentation liegt in `docs/dokumentation_melodle.md` (Projektantrag erweitert, Breadboards, ERM neu unter `docs/images/erm_melodle.png`, Wireframes und App-Screenshots unter `docs/images/`). Das README wurde aktualisiert. Offen: Schulklasse auf dem Titelblatt eintragen, PDF-Export.
+
 Enthält mindestens (Wegleitung):
 - Titelblatt: Modulname (M223), Datum (TT.MM.JJJJ), Vor- und Nachname, Schulklasse.
 - Problemstellung, Vision, Domäne, MVP.
