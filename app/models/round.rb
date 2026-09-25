@@ -24,7 +24,9 @@ class Round < ApplicationRecord
   def self.start!(group, song, user)
     transaction do
       group.rounds.active.each(&:expire_if_needed!) # a timed-out round must not block a new one
-      group.rounds.create!(song: song, started_by: user, started_at: Time.current)
+      round = group.rounds.create!(song: song, started_by: user, started_at: Time.current)
+      Activity.record!(group: group, action: "round_started", actor: user)
+      round
     end
   rescue ActiveRecord::RecordNotUnique
     raise AlreadyActive
@@ -71,12 +73,16 @@ class Round < ApplicationRecord
         next :closed
       end
       next :already if participations.exists?(user_id: user.id)
-      next :wrong unless correct_guess?(text)
+      unless correct_guess?(text)
+        Activity.record!(group: group, action: "guess_wrong", actor: user)
+        next :wrong
+      end
 
       stage = current_stage(now)
       points = points_for(stage)
       participations.create!(user: user, correct: true, points: points, stage_reached: stage)
       Score.find_or_create_by!(user: user, group: group).add_points!(points) # atomic UPDATE total = total + n
+      Activity.record!(group: group, action: "guess_correct", actor: user, points: points)
       finish_locked! if everyone_scored?
       :correct
     end
@@ -102,6 +108,7 @@ class Round < ApplicationRecord
   def finish_locked!
     return unless active?
     update!(status: :finished)
+    Activity.record!(group: group, action: "round_finished", actor: nil, title: song.title)
     group.memberships.where.not(user_id: participations.select(:user_id)).find_each do |membership|
       participations.create!(user_id: membership.user_id, correct: false, points: 0)
     end

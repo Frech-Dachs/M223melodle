@@ -5,6 +5,7 @@ class Group < ApplicationRecord
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :scores, dependent: :destroy
+  has_many :activities, dependent: :destroy
   has_many :songs, dependent: :destroy
   has_many :rounds, dependent: :destroy
 
@@ -24,6 +25,7 @@ class Group < ApplicationRecord
       group = create!(attributes)
       group.memberships.create!(user: host, role: :host)
       group.scores.create!(user: host)
+      Activity.record!(group: group, action: "group_created", actor: host)
       group
     end
   end
@@ -37,6 +39,7 @@ class Group < ApplicationRecord
       raise Full if group.full?
       group.memberships.create!(user: user, role: :player)
       group.scores.find_or_create_by!(user: user)
+      Activity.record!(group: group, action: "member_joined", actor: user)
       group
     end
   rescue ActiveRecord::RecordNotUnique
@@ -47,6 +50,7 @@ class Group < ApplicationRecord
     transaction do
       scores.where(user_id: membership.user_id).destroy_all
       membership.destroy!
+      Activity.record!(group: self, action: "member_removed", name: membership.user.display_name)
     end
   end
 

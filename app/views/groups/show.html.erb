@@ -28,6 +28,6 @@
   </tbody>
 </table>
 
-<p><%= link_to "Bestenliste", group_leaderboard_path(@group) %> · <%= link_to "Songliste (#{@group.songs.count})", group_songs_path(@group) %></p>
+<p><%= link_to "Aktivitäten", group_activities_path(@group) %> · <%= link_to "Bestenliste", group_leaderboard_path(@group) %> · <%= link_to "Songliste (#{@group.songs.count})", group_songs_path(@group) %></p>
 
 <p><%= link_to "Zurück zum Dashboard", dashboard_path %></p>

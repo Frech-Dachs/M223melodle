@@ -358,6 +358,8 @@ end
 
 ## Phase 10 – Aktivitätsprotokoll (Aufgabe 7)
 
+> **Stand:** umgesetzt mit eigener Tabelle `activities` (`group_id`, `actor_id` nullable, `action`, `metadata` als JSON; kein polymorpher `subject`, die Namen/Titel stehen in `metadata`, damit der Feed auch nach dem Löschen lesbar bleibt). `Activity.record!` wird **in derselben Transaktion** wie die Änderung aufgerufen (`Group.create_with_host!`, `Group.join!`, `Group#remove_member!`, `Round.start!`, `Round#guess!`, `Round#finish_locked!`, Songs im `SongsController`). Akteur = `Current.user` (gesetzt aus der Session in `ApplicationController`, nie aus Params); wo das Model den Handelnden kennt, wird er explizit übergeben. Das Ende einer Runde ist ein Systemereignis ohne Akteur («Melodle»). Der Spoiler-Schutz gilt auch im Feed: `round_started` nennt den Song nicht. Falsche Tipps werden protokolliert (ohne Tipptext). Feed: `ActivitiesController#index`, neueste zuerst, letzte 100, nur für Mitglieder. Tests: `test/integration/activities_test.rb` (Akteur, Systemereignis, Feed, Rollback bei fehlgeschlagenem Eintrag für Gruppe, Rundenstart und Tipp). Minitest 6 enthält kein `minitest/mock` mehr, der Test ersetzt `Activity.record!` daher per Singleton-Methode.
+
 1. **Entscheid**: Gem `paper_trail` oder `audited` **oder** eigene Tabelle `activities` (`actor_id`, `subject` polymorph, `action`, `metadata`). Eigene Tabelle ist einfacher und passt zu Kursübung «Beitrag + Aktivität in einer Transaktion».
 2. Protokollieren (jeweils **in derselben Transaktion** wie die Änderung, Akteur = `Current.user`, nie aus Params):
    - Gruppe erstellt / Mitglied beigetreten / entfernt

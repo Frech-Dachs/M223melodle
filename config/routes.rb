@@ -9,6 +9,7 @@ Rails.application.routes.draw do
     resources :songs, only: %i[index create destroy]
     resources :rounds, only: :create
     resource :leaderboard, only: :show
+    resources :activities, only: :index
   end
   resources :rounds, only: :show do
     resources :guesses, only: :create

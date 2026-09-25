@@ -1,0 +1,17 @@
+<h1>Aktivitäten – <%= @group.name %></h1>
+
+<% if @activities.any? %>
+  <ul>
+    <% @activities.each do |activity| %>
+      <li>
+        <time datetime="<%= activity.created_at.iso8601 %>"><%= l activity.created_at, format: :short %></time> –
+        <% if activity.actor %><strong><%= activity.actor_name %></strong><% end %>
+        <%= activity.description %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Noch keine Aktivitäten.</p>
+<% end %>
+
+<p><%= link_to "Zurück zur Gruppe", @group %></p>

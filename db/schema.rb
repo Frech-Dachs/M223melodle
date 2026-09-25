@@ -10,7 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_24_083217) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_24_100000) do
+  create_table "activities", force: :cascade do |t|
+    t.string "action", null: false
+    t.integer "actor_id"
+    t.datetime "created_at", null: false
+    t.integer "group_id", null: false
+    t.json "metadata", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_activities_on_actor_id"
+    t.index ["group_id", "created_at"], name: "index_activities_on_group_id_and_created_at"
+    t.index ["group_id"], name: "index_activities_on_group_id"
+  end
+
   create_table "groups", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "invite_code", null: false
@@ -97,6 +109,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_24_083217) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "activities", "groups"
+  add_foreign_key "activities", "users", column: "actor_id"
   add_foreign_key "memberships", "groups"
   add_foreign_key "memberships", "users"
   add_foreign_key "participations", "rounds"
