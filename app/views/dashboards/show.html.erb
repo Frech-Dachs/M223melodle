@@ -2,11 +2,11 @@
 
 <h2>Meine Gruppen</h2>
 <% if @memberships.any? %>
-  <ul>
+  <ul class="cards">
     <% @memberships.each do |membership| %>
       <li>
         <%= link_to membership.group.name, membership.group %>
-        <%= "(Host)" if membership.host? %>
+        <%= tag.span("HOST", class: "badge") if membership.host? %>
       </li>
     <% end %>
   </ul>
@@ -14,4 +14,7 @@
   <p>Du bist noch in keiner Gruppe.</p>
 <% end %>
 
-<p><%= link_to "Gruppe erstellen", new_group_path %> · <%= link_to "Gruppe beitreten", new_join_path %></p>
+<div class="actions">
+  <%= link_to "Gruppe erstellen", new_group_path %>
+  <%= link_to "Gruppe beitreten", new_join_path %>
+</div>

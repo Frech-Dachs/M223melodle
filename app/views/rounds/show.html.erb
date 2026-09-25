@@ -5,14 +5,18 @@
 
 <% if @round.active? && !done %>
   <% stage = @round.stage_for(current_user) %>
-  <div data-controller="clip-player"
+  <div class="clip" data-controller="clip-player"
        data-clip-player-seconds-value="<%= @round.clip_seconds_for(current_user) %>">
-    <p>Stufe <%= stage + 1 %> von <%= Round::STAGES.size %> · Ausschnitt: <%= @round.clip_seconds_for(current_user) %> s · Punkte bei richtigem Tipp: <%= @round.points_for(stage) %></p>
+    <p>Stufe <%= stage + 1 %> von <%= Round::STAGES.size %> · Ausschnitt: <%= @round.clip_seconds_for(current_user) %> s · <strong><%= @round.points_for(stage) %> Punkte</strong> bei richtigem Tipp</p>
+    <div class="stages" aria-hidden="true">
+      <% Round::STAGES.each_index do |i| %><span class="<%= i < stage ? "done" : ("current" if i == stage) %>"></span><% end %>
+    </div>
     <audio data-clip-player-target="audio" preload="auto" src="<%= @round.song.audio_url %>"></audio>
     <button type="button" data-action="clip-player#play">▶ Ausschnitt abspielen</button>
+    <small>Nach jedem falschen Tipp wird der Ausschnitt länger.</small>
   </div>
 
-  <%= form_with url: round_guesses_path(@round) do %>
+  <%= form_with url: round_guesses_path(@round), class: "guess" do %>
     <p><%= label_tag :guess, "Songtitel" %><br><%= text_field_tag :guess, nil, autocomplete: "off", autofocus: true %></p>
     <%= submit_tag "Raten" %>
   <% end %>

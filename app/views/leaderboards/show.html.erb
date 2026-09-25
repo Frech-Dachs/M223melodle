@@ -5,7 +5,7 @@
     <thead><tr><th>Platz</th><th>Spieler</th><th>Runden gespielt</th><th>Punkte</th></tr></thead>
     <tbody>
       <% @rows.each do |row| %>
-        <tr <%= tag.attributes(class: "me", style: "font-weight: bold") if row[:score].user_id == current_user.id %>>
+        <tr class="<%= [ ("rank-#{row[:rank]}" if row[:rank] <= 3), ("me" if row[:score].user_id == current_user.id) ].compact.join(" ") %>">
           <td><%= row[:rank] %></td>
           <td><%= row[:score].user.display_name %></td>
           <td><%= row[:played] %></td>
