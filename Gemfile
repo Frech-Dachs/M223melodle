@@ -21,7 +21,7 @@ gem "jbuilder"
 gem "bcrypt", "~> 3.1.7"
 
 # json 3.x (bundled with Ruby 4.0) breaks ActiveSupport 8.1 session cookie decoding
-gem "json", "< 3"
+gem "json", "< 4"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
